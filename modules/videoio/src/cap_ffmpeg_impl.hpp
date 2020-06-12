@@ -495,7 +495,7 @@ struct CvCapture_FFMPEG
     int64_t get_total_frames() const;
     double  get_duration_sec() const;
     double  get_fps() const;
-    int     get_bitrate() const;
+    int64_t get_bitrate() const;
 
     double  r2d(AVRational r) const;
     int64_t dts_to_frame_number(int64_t dts);
@@ -1208,9 +1208,20 @@ bool CvCapture_FFMPEG::grabFrame()
 #endif
 
         int ret = av_read_frame(ic, &packet);
-        if (ret == AVERROR(EAGAIN)) continue;
 
-        /* else if (ret < 0) break; */
+        if (ret == AVERROR(EAGAIN))
+            continue;
+
+        if (ret == AVERROR_EOF)
+        {
+            if (rawMode)
+                break;
+
+            // flush cached frames from video decoder
+            packet.data = NULL;
+            packet.size = 0;
+            packet.stream_index = video_stream;
+        }
 
         if( packet.stream_index != video_stream )
         {
@@ -1425,6 +1436,8 @@ double CvCapture_FFMPEG::getProperty( int property_id ) const
         if (rawMode)
             return -1;
         break;
+    case CAP_PROP_BITRATE:
+        return static_cast<double>(get_bitrate());
     default:
         break;
     }
@@ -1449,9 +1462,9 @@ double CvCapture_FFMPEG::get_duration_sec() const
     return sec;
 }
 
-int CvCapture_FFMPEG::get_bitrate() const
+int64_t CvCapture_FFMPEG::get_bitrate() const
 {
-    return ic->bit_rate;
+    return ic->bit_rate / 1000;
 }
 
 double CvCapture_FFMPEG::get_fps() const

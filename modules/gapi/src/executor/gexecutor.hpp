@@ -77,6 +77,9 @@ protected:
     };
     std::vector<DataDesc> m_slots;
 
+    class Input;
+    class Output;
+
     Mag m_res;
 
     void initResource(const ade::NodeHandle &orig_nh); // FIXME: shouldn't it be RcDesc?
@@ -87,6 +90,8 @@ public:
 
     bool canReshape() const;
     void reshape(const GMetaArgs& inMetas, const GCompileArgs& args);
+
+    void prepareForNewStream();
 
     const GModel::Graph& model() const; // FIXME: make it ConstGraph?
 };
